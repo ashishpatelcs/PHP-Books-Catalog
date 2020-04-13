@@ -20,7 +20,10 @@ $router->get('/', function () use ($router) {
 $router->post('/login', 'AuthController@postLogin');
 
 $router->get('/books', 'BookController@index');
+$router->post('/books', 'BookController@store');
 $router->get('/books/{id:[\d]+}', 'BookController@show');
+$router->put('/books/{id:[\d]+}', 'BookController@update');
+$router->delete('/books/{id:[\d]+}', 'BookController@destroy');
 
 $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/users', function () use ($router) {

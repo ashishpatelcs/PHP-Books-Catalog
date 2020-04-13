@@ -48,4 +48,65 @@ class BookControllerTest extends TestCase
             'BookController@show route matching when it should not!'
             );
     }
+
+    /** @test */
+    public function store_should_create_new_book_with_status_201() {
+        $this->post('/books', [
+            'title' => 'Life of legends',
+            'description' => 'The saga of legends',
+            'author' => 'Ashish Patel'
+        ]);
+        $this->seeStatusCode(201)->seeJson(['created' => true])->seeInDatabase('books', ['title' => 'Life of legends']);
+    }
+
+    /** @test */
+    public function update_should_only_change_fillable_fields() {
+        $this->notSeeInDatabase('books', ['title' => 'The Invisible Man']);
+
+        $this->put('/books/1', [
+            'id' => 5,
+            'title' => 'The Invisible Man',
+            'description' => 'description here',
+            'author' => 'Ashish Patel'
+        ]);
+
+        $this->seeStatusCode(200)->seeJson([
+            'id' => 1,
+            'title' => 'The Invisible Man',
+            'description' => 'description here',
+            'author' => 'Ashish Patel'
+        ])->seeInDatabase('books', ['title' => 'The Invisible Man']);
+    }
+
+    /** @test */
+    public function update_should_fail_with_invalid_id() {
+        $this->put('/books/999')
+            ->seeStatusCode(404)
+            ->seeJson([
+                'error' => [
+                    'message' => 'Book not found'
+                ]
+            ]);
+    }
+
+    /** @test */
+    public function update_should_not_match_invalid_route() {
+        $this->put('/books/this-is-invalid')->seeStatusCode(404);
+    }
+
+    /** @test */
+    public function destroy_should_remove_book() {
+        $this->delete('/books/1')->seeStatusCode(204)->isEmpty();
+        $this->notSeeInDatabase('books', ['id' => 1]);
+    }
+
+    /** @test */
+    public function destroy_should_return_404_on_invalid_id() {
+        $this->delete('/books/999')->seeStatusCode(404)->seeJson(['error' => ['message' => 'Book not found']]);
+    }
+
+    /** @test */
+    public function destroy_should_not_match_invalid_route() {
+        $this->put('/books/this-is-invalid')->seeStatusCode(404);
+    }
 }
