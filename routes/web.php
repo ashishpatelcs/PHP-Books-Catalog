@@ -19,6 +19,9 @@ $router->get('/', function () use ($router) {
 
 $router->post('/login', 'AuthController@postLogin');
 
+$router->get('/books', 'BookController@index');
+$router->get('/books/{id:[\d]+}', 'BookController@show');
+
 $router->group(['middleware' => 'auth'], function ($router) {
     $router->get('/users', function () use ($router) {
         return User::all();
