@@ -6,6 +6,7 @@ use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Illuminate\Validation\ValidationException;
 use Laravel\Lumen\Exceptions\Handler as ExceptionHandler;
+use Symfony\Component\HttpFoundation\Response;
 use Symfony\Component\HttpKernel\Exception\HttpException;
 use Throwable;
 
@@ -43,12 +44,45 @@ class Handler extends ExceptionHandler
      *
      * @param  \Illuminate\Http\Request  $request
      * @param  \Throwable  $exception
-     * @return \Illuminate\Http\Response|\Illuminate\Http\JsonResponse
+     * @return \Symfony\Component\HttpFoundation\Response
      *
      * @throws \Throwable
      */
     public function render($request, Throwable $exception)
     {
+        if ($request->wantsJson() && !($exception instanceof ValidationException)) {
+            $res = [
+                'message' => (string) $exception->getMessage(),
+                'status' => 400
+            ];
+
+            if ($exception instanceof HttpException) {
+                $res['message'] = \Illuminate\Http\Response::$statusTexts[$exception->getStatusCode()];
+                $res['status'] = $exception->getStatusCode();
+            } else if ($exception instanceof ModelNotFoundException) {
+                $res['message'] = Response::$statusTexts[Response::HTTP_NOT_FOUND];
+                $res['status'] = Response::HTTP_NOT_FOUND;
+            }
+
+            if ($this->isDebugMode()) {
+                $res['debug'] = [
+                    'exception' => get_class($exception),
+//                    'trace' => $exception->getTraceAsString()
+                ];
+            }
+
+            return response()->json(['error' => $res], $res['status']);
+        }
         return parent::render($request, $exception);
+    }
+
+    /**
+     * Determine if the application is in debug mode.
+     *
+     * @return Boolean
+     */
+    public function isDebugMode()
+    {
+        return (Boolean) env('APP_DEBUG', false);
     }
 }

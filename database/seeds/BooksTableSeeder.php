@@ -4,19 +4,17 @@ class BooksTableSeeder extends \Illuminate\Database\Seeder
 {
     public function run()
     {
-        DB::table('books')->insert([
-            'title' => 'War of the worlds',
-            'description' => 'description here',
-            'author' => 'Ashish Patel',
-            'created_at' => \Carbon\Carbon::now(),
-            'updated_at' => \Carbon\Carbon::now()
-        ]);
-        DB::table('books')->insert([
-            'title' => 'A wrinkle in time',
-            'description' => 'description here',
-            'author' => 'Ashish Patel',
-            'created_at' => \Carbon\Carbon::now(),
-            'updated_at' => \Carbon\Carbon::now()
-        ]);
+        factory(App\Models\Author::class, 10)->create()->each(function ($author) {
+            $author->ratings()->saveMany(factory(App\Models\Rating::class, rand(20, 50))->make());
+
+            $booksCount = rand(1, 6);
+
+            while($booksCount > 0) {
+                $book = factory(App\Models\Book::class)->make();
+                $author->books()->save($book);
+                $book->ratings()->saveMany(factory(App\Models\Rating::class, rand(20, 50))->make());
+                $booksCount--;
+            }
+        });
     }
 }

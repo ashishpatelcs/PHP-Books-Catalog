@@ -2,6 +2,8 @@
 
 class BookControllerTest extends TestCase
 {
+    use \Laravel\Lumen\Testing\DatabaseMigrations;
+
     /** @test */
     public function index_status_code_should_be_200() {
         $this->get('/books')->seeStatusCode(200);
@@ -9,22 +11,26 @@ class BookControllerTest extends TestCase
 
     /** @test */
     public function index_should_return_collection_of_books() {
-        $this->get('/books')->seeJson([ 'title' => 'War of the worlds' ]);
+        $books = factory(App\Models\Book::class, 2)->create();
+        $this->get('/books');
+        $expected = [
+            'data' => $books->toArray()
+        ];
+        $this->seeJsonEquals($expected);
     }
 
     /** @test */
     public function show_should_return_valid_book() {
-        $this->get('/books/1')
+        $book = factory(App\Models\Book::class)->create();
+        $expected = [
+            'data' => $book->toArray()
+        ];
+        $this->get('/books/'.$book->id)
             ->seeStatusCode(200)
-            ->seeJson([
-                "id" => 1,
-                "title" => "War of the worlds",
-                "description" => "description here",
-                "author" => "Ashish Patel"
-            ]);
-        $data = json_decode($this->response->getContent(), true);
-        $this->assertArrayHasKey('created_at', $data);
-        $this->assertArrayHasKey('updated_at', $data);
+            ->seeJson($expected);
+        $body = json_decode($this->response->getContent(), true);
+        $this->assertArrayHasKey('created_at', $body['data']);
+        $this->assertArrayHasKey('updated_at', $body['data']);
     }
 
     /** @test */
@@ -61,21 +67,23 @@ class BookControllerTest extends TestCase
 
     /** @test */
     public function update_should_only_change_fillable_fields() {
-        $this->notSeeInDatabase('books', ['title' => 'The Invisible Man']);
+        $book = factory(App\Models\Book::class)->create([
+            'title' => 'War of the Worlds',
+            'description' => 'A science fiction masterpiece about Martians invading London',
+            'author' => 'H. G. Wells'
+        ]);
+        $expected = [
+            'data' => $book->toArray()
+        ];
 
         $this->put('/books/1', [
             'id' => 5,
-            'title' => 'The Invisible Man',
-            'description' => 'description here',
-            'author' => 'Ashish Patel'
+            'title' => 'War of the Worlds',
+            'description' => 'A science fiction masterpiece about Martians invading London',
+            'author' => 'H. G. Wells'
         ]);
 
-        $this->seeStatusCode(200)->seeJson([
-            'id' => 1,
-            'title' => 'The Invisible Man',
-            'description' => 'description here',
-            'author' => 'Ashish Patel'
-        ])->seeInDatabase('books', ['title' => 'The Invisible Man']);
+        $this->seeStatusCode(200)->seeJson($expected)->seeInDatabase('books', ['title' => 'War of the Worlds']);
     }
 
     /** @test */
@@ -96,8 +104,9 @@ class BookControllerTest extends TestCase
 
     /** @test */
     public function destroy_should_remove_book() {
-        $this->delete('/books/1')->seeStatusCode(204)->isEmpty();
-        $this->notSeeInDatabase('books', ['id' => 1]);
+        $book = factory(App\Models\Book::class)->create();
+        $this->delete('/books/'.$book->id)->seeStatusCode(204)->isEmpty();
+        $this->notSeeInDatabase('books', ['id' => $book->id]);
     }
 
     /** @test */
